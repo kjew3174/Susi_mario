@@ -45,100 +45,165 @@
 => 디버깅 메시지 출력 여부
 모든 함수에 추가
 
-Susi_Mario/
-├─ main.py
-│ ├─ main() -> None
-│ │ ├─ 초기화 및 첫 씬(menu) 실행
-│ │ └─ 씬 전환 제어 (menu → game → result)
-│
-├─ game.py
-│ ├─ run_game(map_path: str) -> dict
-│ │ ├─ 맵 로드(load_map)
-│ │ ├─ 루프: handle_events → update → render
-│ │ ├─ 종료 조건: 클리어 or 사망
-│ │ └─ return {"status": "clear"/"dead", "time": float}
-│ │
-│ ├─ load_map(map_path: str) -> dict
-│ │ └─ JSON 파일에서 블럭, 몹, 아이템 정보 불러오기
-│ │
-│ ├─ handle_events(keys: dict) -> None
-│ │ └─ 이동, 점프, 웅크리기 등 입력 처리
-│ │
-│ ├─ update(dt: float, player: dict, enemies: list, items: list) -> None
-│ │ ├─ 중력 적용
-│ │ ├─ 충돌 판정 (player vs block / enemy / item)
-│ │ └─ 효과 적용 (아이템, 피격 등)
-│ │
-│ ├─ render(screen: pygame.Surface, data: dict) -> None
-│ │ └─ 배경, 플레이어, 몹, UI(시간·목숨) 렌더링
-│ │
-│ ├─ reset_player() -> dict
-│ │ └─ 플레이어 초기 좌표, 상태(dict) 반환
-│ │
-│ └─ reset_boss() -> dict
-│ └─ 보스 초기 좌표, 체력 상태(dict) 반환
-│
-├─ editor.py
-│ ├─ run_editor() -> None
-│ │ └─ 맵 수정 루프 (오브젝트 추가·삭제)
-│ │
-│ ├─ load_map(path: str) -> dict
-│ ├─ save_map(path: str, data: dict) -> None
-│ ├─ add_object(obj_type: str, x: int, y: int) -> None
-│ └─ remove_object(x: int, y: int) -> None
-│
-├─ scenes/
-│ ├─ menu.py
-│ │ ├─ run_menu(screen: pygame.Surface) -> str
-│ │ │ ├─ 시작 / 설정 / 종료 중 선택
-│ │ │ └─ return "start" / "setting" / "quit"
-│ │
-│ ├─ result.py
-│ │ ├─ run_result(screen: pygame.Surface, result: dict) -> str
-│ │ │ ├─ 결과 표시, 기록 저장(save_record)
-│ │ │ └─ return "retry" / "menu"
-│ │
-│ └─ setting.py
-│ ├─ run_setting(screen: pygame.Surface) -> None
-│ │ ├─ 볼륨, 키 변경 등 설정 UI
-│ │ └─ 저장(save_settings)
-│ ├─ load_settings() -> dict
-│ └─ save_settings(settings: dict) -> None
-│
-├─ entities/
-│ ├─ enemy.py
-│ │ ├─ create_enemy(x: int, y: int, speed: float) -> dict
-│ │ │ └─ {"x": int, "y": int, "speed": float, "dir": 1}
-│ │ ├─ move_enemy(enemy: dict, dt: float, blocks: list) -> None
-│ │ └─ check_collision(enemy: dict, player_rect: pygame.Rect) -> bool
-│ │
-│ ├─ item.py
-│ │ ├─ create_item(x: int, y: int, item_type: str) -> dict
-│ │ │ └─ {"x": int, "y": int, "type": "coffee"/"extra_life"}
-│ │ └─ apply_item_effect(player: dict, item_type: str) -> None
-│ │ └─ 무적/체력 증가 등 처리
-│ │
-│ └─ block.py
-│ ├─ create_block(x: int, y: int, block_type: str) -> dict
-│ │ └─ {"x": int, "y": int, "type": "ground"/"item"}
-│ └─ hit_block(block: dict, player: dict, items: list) -> None
-│
-├─ assets/
-│ ├─ images/ ← 스프라이트 이미지
-│ └─ sounds/ ← 효과음, 배경음악
-│
-├─ data/
-│ ├─ maps/
-│ │ └─ stage1.json
-│ └─ record.json
-│ ├─ save_record(result: dict) -> None
-│ └─ load_records() -> list[dict]
-│
-└─ utils/
-├─ json_loader.py
-│ ├─ load_json(path: str) -> dict
-│ └─ save_json(path: str, data: dict) -> None
-│
-└─ config.py
-├─ SETTINGS = {...}
-└─ (화면 크기, FPS, 중력, 기본 속도 등 상수)
+main.py
+
+설명: 게임의 진입점으로, 초기 설정 및 씬 전환 관리.
+
+함수
+
+main() -> None
+
+게임 전체를 실행하는 메인 루프.
+
+초기화 후 MenuScene으로 진입.
+
+game.py
+
+설명: 실제 게임 진행을 담당. (맵 로딩, 충돌 처리, 점수 관리 등)
+
+함수
+
+run_game() -> int
+
+스테이지를 실행하고 클리어 또는 사망 시 점수를 반환.
+
+handle_collision(player_rect: pygame.Rect, blocks: list, items: list, enemies: list) -> dict
+
+충돌 여부를 판별하고 결과({"hit_enemy": bool, "got_item": bool})를 반환.
+
+reset_game() -> None
+
+모든 게임 오브젝트를 초기 상태로 복구.
+
+editor.py
+
+설명: 간단한 맵 에디터 기능 (테스트용)
+
+함수
+
+open_editor() -> None
+
+맵 편집 인터페이스를 실행.
+
+save_map(map_data: list[list[int]]) -> None
+
+편집된 맵 데이터를 JSON 파일로 저장.
+
+scenes/
+menu.py
+
+클래스: MenuScene
+
+메서드
+
+__init__(self) -> None
+
+update(self, events: list) -> str
+
+버튼 클릭 등 이벤트를 감지하고 다음 씬 이름("game", "setting", "exit") 반환.
+
+render(self, screen: pygame.Surface) -> None
+
+result.py
+
+클래스: ResultScene
+
+메서드
+
+__init__(self, score: int) -> None
+
+update(self, events: list) -> str
+
+다시하기 / 메뉴로 돌아가기 버튼 처리.
+
+render(self, screen: pygame.Surface) -> None
+
+setting.py
+
+클래스: SettingScene
+
+메서드
+
+__init__(self, config: dict) -> None
+
+update(self, events: list) -> str
+
+사운드 on/off, 난이도 변경 등.
+
+render(self, screen: pygame.Surface) -> None
+
+entities/
+enemy.py
+
+함수
+
+spawn_enemies(map_data: list[list[int]]) -> list[dict]
+
+맵 정보에 따라 적의 위치를 생성해 리스트 반환.
+
+update_enemies(enemies: list[dict], dt: float) -> None
+
+각 적의 위치 및 상태 업데이트.
+
+draw_enemies(screen: pygame.Surface, enemies: list[dict]) -> None
+
+item.py
+
+함수
+
+spawn_items(map_data: list[list[int]]) -> list[dict]
+
+update_items(items: list[dict], dt: float) -> None
+
+draw_items(screen: pygame.Surface, items: list[dict]) -> None
+
+block.py
+
+함수
+
+load_blocks(map_data: list[list[int]]) -> list[pygame.Rect]
+
+맵 데이터를 읽어 충돌용 블록 좌표 생성.
+
+draw_blocks(screen: pygame.Surface, blocks: list[pygame.Rect]) -> None
+
+assets/
+images/
+
+배경, 블록, 적, 아이템 등의 이미지 파일 (.png)
+
+sounds/
+
+효과음, 배경음악 파일 (.wav, .mp3)
+
+data/
+maps/
+
+스테이지 맵 데이터 (.json 또는 .txt)
+
+record.json
+
+최고 점수, 설정값 저장 파일
+
+utils/
+json_loader.py
+
+함수
+
+load_json(path: str) -> dict | list
+
+JSON 파일 읽기
+
+save_json(path: str, data: dict | list) -> None
+
+config.py
+
+클래스: Config
+
+속성: screen_width, screen_height, volume, difficulty
+
+메서드
+
+load(self, path: str) -> None
+
+save(self, path: str) -> None
