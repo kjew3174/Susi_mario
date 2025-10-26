@@ -46,101 +46,99 @@
 모든 함수에 추가
 
 Susi_Mario/
- ├─ main.py
- │    ├─ main() -> None
- │    │     ├─ 초기화 및 첫 씬(menu) 실행
- │    │     └─ 씬 전환 제어 (menu → game → result)
- │
- ├─ game.py
- │    ├─ run_game(map_path: str) -> dict
- │    │     ├─ 맵 로드(load_map)
- │    │     ├─ 루프: handle_events → update → render
- │    │     ├─ 종료 조건: 클리어 or 사망
- │    │     └─ return {"status": "clear"/"dead", "time": float}
- │    │
- │    ├─ load_map(map_path: str) -> dict
- │    │     └─ JSON 파일에서 블럭, 몹, 아이템 정보 불러오기
- │    │
- │    ├─ handle_events(keys: dict) -> None
- │    │     └─ 이동, 점프, 웅크리기 등 입력 처리
- │    │
- │    ├─ update(dt: float, player: dict, enemies: list, items: list) -> None
- │    │     ├─ 중력 적용
- │    │     ├─ 충돌 판정 (player vs block / enemy / item)
- │    │     └─ 효과 적용 (아이템, 피격 등)
- │    │
- │    ├─ render(screen: pygame.Surface, data: dict) -> None
- │    │     └─ 배경, 플레이어, 몹, UI(시간·목숨) 렌더링
- │    │
- │    ├─ reset_player() -> dict
- │    │     └─ 플레이어 초기 좌표, 상태(dict) 반환
- │    │
- │    ├─ reset_boss() -> dict
- │    │     └─ 보스 초기 좌표, 체력 상태(dict) 반환
- │
- ├─ editor.py
- │    ├─ run_editor() -> None
- │    │     └─ 맵 수정 루프 (오브젝트 추가·삭제)
- │    │
- │    ├─ load_map(path: str) -> dict
- │    ├─ save_map(path: str, data: dict) -> None
- │    ├─ add_object(obj_type: str, x: int, y: int) -> None
- │    ├─ remove_object(x: int, y: int) -> None
- │
- ├─ scenes/
- │    ├─ menu.py
- │    │     ├─ run_menu(screen: pygame.Surface) -> str
- │    │     │     ├─ 시작 / 설정 / 종료 중 선택
- │    │     │     └─ return "start" / "setting" / "quit"
- │    │
- │    ├─ result.py
- │    │     ├─ run_result(screen: pygame.Surface, result: dict) -> str
- │    │     │     ├─ 결과 표시, 기록 저장(save_record)
- │    │     │     └─ return "retry" / "menu"
- │    │
- │    ├─ setting.py
- │          ├─ run_setting(screen: pygame.Surface) -> None
- │          │     ├─ 볼륨, 키 변경 등 설정 UI
- │          │     └─ 저장(save_settings)
- │          ├─ load_settings() -> dict
- │          ├─ save_settings(settings: dict) -> None
- │
- ├─ entities/
- │    ├─ enemy.py
- │    │     ├─ create_enemy(x: int, y: int, speed: float) -> dict
- │    │     │     └─ {"x": int, "y": int, "speed": float, "dir": 1}
- │    │
- │    │     ├─ move_enemy(enemy: dict, dt: float, blocks: list) -> None
- │    │     └─ check_collision(enemy: dict, player_rect: pygame.Rect) -> bool
- │    │
- │    ├─ item.py
- │    │     ├─ create_item(x: int, y: int, item_type: str) -> dict
- │    │     │     └─ {"x": int, "y": int, "type": "coffee"/"extra_life"}
- │    │
- │    │     └─ apply_item_effect(player: dict, item_type: str) -> None
- │    │          └─ 무적/체력 증가 등 처리
- │    │
- │    ├─ block.py
- │          ├─ create_block(x: int, y: int, block_type: str) -> dict
- │          │     └─ {"x": int, "y": int, "type": "ground"/"item"}
- │          └─ hit_block(block: dict, player: dict, items: list) -> None
- │
- ├─ assets/
- │    ├─ images/    ← 스프라이트 이미지
- │    └─ sounds/    ← 효과음, 배경음악
- │
- ├─ data/
- │    ├─ maps/
- │    │     └─ stage1.json
- │    └─ record.json
- │          ├─ save_record(result: dict) -> None
- │          └─ load_records() -> list[dict]
- │
- └─ utils/
-      ├─ json_loader.py
-      │     ├─ load_json(path: str) -> dict
-      │     └─ save_json(path: str, data: dict) -> None
-      │
-      └─ config.py
-            ├─ SETTINGS = {...}
-            └─ (화면 크기, FPS, 중력, 기본 속도 등 상수)
+├─ main.py
+│ ├─ main() -> None
+│ │ ├─ 초기화 및 첫 씬(menu) 실행
+│ │ └─ 씬 전환 제어 (menu → game → result)
+│
+├─ game.py
+│ ├─ run_game(map_path: str) -> dict
+│ │ ├─ 맵 로드(load_map)
+│ │ ├─ 루프: handle_events → update → render
+│ │ ├─ 종료 조건: 클리어 or 사망
+│ │ └─ return {"status": "clear"/"dead", "time": float}
+│ │
+│ ├─ load_map(map_path: str) -> dict
+│ │ └─ JSON 파일에서 블럭, 몹, 아이템 정보 불러오기
+│ │
+│ ├─ handle_events(keys: dict) -> None
+│ │ └─ 이동, 점프, 웅크리기 등 입력 처리
+│ │
+│ ├─ update(dt: float, player: dict, enemies: list, items: list) -> None
+│ │ ├─ 중력 적용
+│ │ ├─ 충돌 판정 (player vs block / enemy / item)
+│ │ └─ 효과 적용 (아이템, 피격 등)
+│ │
+│ ├─ render(screen: pygame.Surface, data: dict) -> None
+│ │ └─ 배경, 플레이어, 몹, UI(시간·목숨) 렌더링
+│ │
+│ ├─ reset_player() -> dict
+│ │ └─ 플레이어 초기 좌표, 상태(dict) 반환
+│ │
+│ └─ reset_boss() -> dict
+│ └─ 보스 초기 좌표, 체력 상태(dict) 반환
+│
+├─ editor.py
+│ ├─ run_editor() -> None
+│ │ └─ 맵 수정 루프 (오브젝트 추가·삭제)
+│ │
+│ ├─ load_map(path: str) -> dict
+│ ├─ save_map(path: str, data: dict) -> None
+│ ├─ add_object(obj_type: str, x: int, y: int) -> None
+│ └─ remove_object(x: int, y: int) -> None
+│
+├─ scenes/
+│ ├─ menu.py
+│ │ ├─ run_menu(screen: pygame.Surface) -> str
+│ │ │ ├─ 시작 / 설정 / 종료 중 선택
+│ │ │ └─ return "start" / "setting" / "quit"
+│ │
+│ ├─ result.py
+│ │ ├─ run_result(screen: pygame.Surface, result: dict) -> str
+│ │ │ ├─ 결과 표시, 기록 저장(save_record)
+│ │ │ └─ return "retry" / "menu"
+│ │
+│ └─ setting.py
+│ ├─ run_setting(screen: pygame.Surface) -> None
+│ │ ├─ 볼륨, 키 변경 등 설정 UI
+│ │ └─ 저장(save_settings)
+│ ├─ load_settings() -> dict
+│ └─ save_settings(settings: dict) -> None
+│
+├─ entities/
+│ ├─ enemy.py
+│ │ ├─ create_enemy(x: int, y: int, speed: float) -> dict
+│ │ │ └─ {"x": int, "y": int, "speed": float, "dir": 1}
+│ │ ├─ move_enemy(enemy: dict, dt: float, blocks: list) -> None
+│ │ └─ check_collision(enemy: dict, player_rect: pygame.Rect) -> bool
+│ │
+│ ├─ item.py
+│ │ ├─ create_item(x: int, y: int, item_type: str) -> dict
+│ │ │ └─ {"x": int, "y": int, "type": "coffee"/"extra_life"}
+│ │ └─ apply_item_effect(player: dict, item_type: str) -> None
+│ │ └─ 무적/체력 증가 등 처리
+│ │
+│ └─ block.py
+│ ├─ create_block(x: int, y: int, block_type: str) -> dict
+│ │ └─ {"x": int, "y": int, "type": "ground"/"item"}
+│ └─ hit_block(block: dict, player: dict, items: list) -> None
+│
+├─ assets/
+│ ├─ images/ ← 스프라이트 이미지
+│ └─ sounds/ ← 효과음, 배경음악
+│
+├─ data/
+│ ├─ maps/
+│ │ └─ stage1.json
+│ └─ record.json
+│ ├─ save_record(result: dict) -> None
+│ └─ load_records() -> list[dict]
+│
+└─ utils/
+├─ json_loader.py
+│ ├─ load_json(path: str) -> dict
+│ └─ save_json(path: str, data: dict) -> None
+│
+└─ config.py
+├─ SETTINGS = {...}
+└─ (화면 크기, FPS, 중력, 기본 속도 등 상수)
