@@ -6,6 +6,36 @@
 과정: 마리오 형식으로
 결과: 시간 기록 기반 등급(백분율), 대응되는 대학 + 메시지 or 한강 철교 이미지
 
+이미지:
+	캐릭터 높이 160: 블록 1개
+	점프 높이 블록 0~5칸
+	너비 블록 1개	
+	메뉴 화면
+	menu_background.png - 메인 메뉴 배경 (1920x1080)
+	title.png - 게임 타이틀 이미지 (선택사항)
+	게임 플레이
+	player.png - 플레이어 기본 이미지 (160x160)
+	player_crouch.png - 플레이어 웅크리기 이미지 (160x80, 선택사항)
+	background.png - 게임 배경 (천고 배경, 가로로 긴 타일 가능)
+	application_form.png - 수시 원서 이미지 (160x160)
+	블록
+	block_normal.png - 일반 블록 (160x160)
+	block_item.png - 아이템 블록 (160x160)
+	block_pipe.png - 토관/논술 (160x320, 세로로 긴 형태)
+	적 (Enemies)
+	enemy_strong.png - 강한 적 (박건률) (160x160)
+	enemy_weak.png - 약한 적 (오유준) (160x160)
+	enemy_boss.png - 보스 (청마) (320x320, 2배 크기)
+	아이템
+	item_coffee.png - 커피 아이템 (무적) (160x160)
+	item_general.png - 일반 아이템 (160x160)
+	결과 화면
+	bridge.png - 한강 철교 이미지 (선택사항, 등급 50% 미만 시 표시)
+	UI 요소 (선택사항)
+	button.png - 버튼 이미지
+	button_hover.png - 버튼 호버 이미지
+	pause_menu.png - 일시정지 메뉴 배경
+	
 시스템: 맵 불러오기(Json), 에디터
 	메뉴 화면: 시작하기
 			게임 제목
