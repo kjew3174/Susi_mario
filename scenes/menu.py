@@ -1,6 +1,7 @@
 """메뉴 씬"""
 import pygame
 from utils.json_loader import load_json
+from utils.font_loader import get_korean_font
 
 
 class MenuScene:
@@ -21,6 +22,9 @@ class MenuScene:
         self.background_image = None
         self.title_image = None
         
+        # 버튼 이미지
+        self.button_images = {}
+        
         # 버튼 위치 설정
         self.setup_buttons()
         
@@ -36,13 +40,14 @@ class MenuScene:
             "exit": pygame.Rect(screen_width // 2 - 200, screen_height // 2 + 300, 400, 80)
         }
     
-    def load_images(self, background_path: str = None, title_path: str = None):
+    def load_images(self, background_path: str = None, title_path: str = None, button_images: dict = None):
         """
         이미지 로드
         
         Args:
             background_path: 배경 이미지 경로
             title_path: 타이틀 이미지 경로
+            button_images: 버튼 이미지 딕셔너리 {"start": path, "setting": path, ...}
         """
         try:
             if background_path:
@@ -50,6 +55,13 @@ class MenuScene:
                 self.background_image = pygame.transform.scale(self.background_image, (1920, 1080))
             if title_path:
                 self.title_image = pygame.image.load(title_path).convert_alpha()
+            if button_images:
+                for key, path in button_images.items():
+                    try:
+                        self.button_images[key] = pygame.image.load(path).convert_alpha()
+                    except:
+                        if self.debug:
+                            print(f"[DEBUG] 버튼 이미지 로드 실패: {key}")
         except:
             if self.debug:
                 print("[DEBUG] 메뉴 이미지 로드 실패")
@@ -105,9 +117,9 @@ class MenuScene:
         
         # 폰트 초기화
         if not self.font_large:
-            self.font_large = pygame.font.Font(None, 72)
-            self.font_medium = pygame.font.Font(None, 48)
-            self.font_small = pygame.font.Font(None, 36)
+            self.font_large = get_korean_font(72, self.debug)
+            self.font_medium = get_korean_font(48, self.debug)
+            self.font_small = get_korean_font(36, self.debug)
         
         # 타이틀
         if self.title_image:
@@ -128,16 +140,25 @@ class MenuScene:
         }
         
         for key, rect in self.buttons.items():
-            # 호버 효과
-            if rect.collidepoint(mouse_pos):
-                color = (100, 150, 255)
+            # 버튼 이미지 사용
+            if key in self.button_images:
+                button_img = self.button_images[key]
+                # 호버 효과 (이미지가 있으면 호버 이미지도 사용 가능)
+                if rect.collidepoint(mouse_pos) and f"{key}_hover" in self.button_images:
+                    button_img = self.button_images[f"{key}_hover"]
+                # 버튼 크기에 맞게 조정
+                button_img = pygame.transform.scale(button_img, (rect.width, rect.height))
+                screen.blit(button_img, rect)
             else:
-                color = (70, 130, 180)
+                # 이미지가 없으면 색상으로 표시
+                if rect.collidepoint(mouse_pos):
+                    color = (100, 150, 255)
+                else:
+                    color = (70, 130, 180)
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, (255, 255, 255), rect, 3)
             
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 3)
-            
-            # 버튼 텍스트
+            # 버튼 텍스트 (이미지 위에 표시)
             text = self.font_medium.render(button_labels[key], True, (255, 255, 255))
             text_rect = text.get_rect(center=rect.center)
             screen.blit(text, text_rect)

@@ -1,6 +1,7 @@
 """결과 씬"""
 import pygame
 from utils.json_loader import load_json, save_json
+from utils.font_loader import get_korean_font
 import os
 
 
@@ -25,6 +26,9 @@ class ResultScene:
         self.message = self.get_message()
         
         self.buttons = {}
+        self.button_images = {}
+        self.background_image = None
+        self.bridge_image = None
         self.setup_buttons()
         
         # 기록 저장
@@ -152,16 +156,20 @@ class ResultScene:
         Args:
             screen: 화면 Surface
         """
-        # 배경
-        if self.victory:
-            screen.fill((50, 150, 50))  # 초록색
+        # 배경 이미지
+        if self.background_image:
+            screen.blit(self.background_image, (0, 0))
         else:
-            screen.fill((150, 50, 50))  # 빨간색
+            # 배경 색상
+            if self.victory:
+                screen.fill((50, 150, 50))  # 초록색
+            else:
+                screen.fill((150, 50, 50))  # 빨간색
         
         # 폰트
-        font_large = pygame.font.Font(None, 72)
-        font_medium = pygame.font.Font(None, 48)
-        font_small = pygame.font.Font(None, 36)
+        font_large = get_korean_font(72, self.debug)
+        font_medium = get_korean_font(48, self.debug)
+        font_small = get_korean_font(36, self.debug)
         
         # 결과 텍스트
         if self.victory:
@@ -202,22 +210,28 @@ class ResultScene:
         }
         
         for key, rect in self.buttons.items():
-            if rect.collidepoint(mouse_pos):
-                color = (100, 150, 255)
+            # 버튼 이미지 사용
+            if key in self.button_images:
+                button_img = self.button_images[key]
+                if rect.collidepoint(mouse_pos) and f"{key}_hover" in self.button_images:
+                    button_img = self.button_images[f"{key}_hover"]
+                button_img = pygame.transform.scale(button_img, (rect.width, rect.height))
+                screen.blit(button_img, rect)
             else:
-                color = (70, 130, 180)
-            
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 3)
+                # 이미지가 없으면 색상으로 표시
+                if rect.collidepoint(mouse_pos):
+                    color = (100, 150, 255)
+                else:
+                    color = (70, 130, 180)
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, (255, 255, 255), rect, 3)
             
             text = font_medium.render(button_labels[key], True, (255, 255, 255))
             text_rect = text.get_rect(center=rect.center)
             screen.blit(text, text_rect)
         
         # 한강 철교 이미지 (등급이 낮을 때)
-        # 이미지 로드는 나중에 추가될 예정
-        if self.grade < 50:
-            bridge_text = font_medium.render("한강 철교", True, (255, 255, 255))
-            bridge_rect = bridge_text.get_rect(center=(1920 // 2, 700))
-            screen.blit(bridge_text, bridge_rect)
+        if self.grade < 50 and self.bridge_image:
+            bridge_rect = self.bridge_image.get_rect(center=(1920 // 2, 700))
+            screen.blit(self.bridge_image, bridge_rect)
 

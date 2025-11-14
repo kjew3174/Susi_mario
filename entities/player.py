@@ -28,8 +28,16 @@ class Player:
         self.lives = 3
         self.invincible = False
         self.invincible_timer = 0
-        self.invincible_duration = 6000  # 6초 (밀리초)
+        self.invincible_duration = 2000  # 2초 (밀리초) - 부활 후 무적 시간
         self.facing_right = True
+        
+        # 점프 관련 (마리오 스타일)
+        self.is_jumping = False
+        self.jump_held = False
+        self.max_jump_time = 0.3  # 최대 점프 시간 (초)
+        self.jump_time = 0
+        self.max_jump_height = 400  # 최대 점프 높이 (픽셀)
+        self.jump_start_y = 0
         
         # 이미지 로드 (나중에 추가될 예정)
         self.image = None
@@ -53,18 +61,40 @@ class Player:
             if self.debug:
                 print(f"[DEBUG] 이미지 로드 실패: {image_path}")
     
-    def update(self, dt: float, blocks: list, debug: bool = False) -> None:
+    def update(self, dt: float, blocks: list, jump_held: bool = False, debug: bool = False) -> None:
         """
         플레이어 상태 업데이트
         
         Args:
             dt: 델타 타임 (초)
             blocks: 충돌할 블록 리스트
+            jump_held: 점프 키가 눌려있는지 여부
             debug: 디버깅 메시지 출력 여부
         """
-        # 중력 적용
-        if not self.on_ground:
-            self.velocity_y += self.gravity
+        # 점프 중 처리 (마리오 스타일)
+        if self.is_jumping and jump_held:
+            self.jump_time += dt
+            # 최대 점프 시간 내에서만 계속 올라가기
+            if self.jump_time < self.max_jump_time:
+                # 점프 높이 제한 확인
+                current_height = self.jump_start_y - self.rect.y
+                if current_height < self.max_jump_height:
+                    self.velocity_y = self.jump_power
+                else:
+                    # 최대 높이 도달 시 중력 적용
+                    self.velocity_y += self.gravity
+            else:
+                # 최대 점프 시간 초과 시 중력 적용
+                self.velocity_y += self.gravity
+        else:
+            # 점프가 끝났거나 키를 떼면 중력 적용
+            if self.is_jumping:
+                self.is_jumping = False
+                self.jump_time = 0
+            
+            # 중력 적용
+            if not self.on_ground:
+                self.velocity_y += self.gravity
         
         # 수평 이동
         self.rect.x += int(self.velocity_x * dt * 60)
@@ -81,6 +111,8 @@ class Player:
                     self.rect.bottom = block.top
                     self.velocity_y = 0
                     self.on_ground = True
+                    self.is_jumping = False
+                    self.jump_time = 0
                 # 위에서 충돌 (천장)
                 elif self.velocity_y < 0 and self.rect.top < block.bottom:
                     self.rect.top = block.bottom
@@ -112,16 +144,24 @@ class Player:
     
     def jump(self, power: float = None) -> None:
         """
-        점프
+        점프 시작
         
         Args:
-            power: 점프 파워 (None이면 기본값 사용)
+            power: 점프 파워 (None이면 기본값 사용, 마리오 스타일에서는 사용 안 함)
         """
-        if self.on_ground and not self.is_crouching:
-            self.velocity_y = power if power else self.jump_power
+        if self.on_ground and not self.is_crouching and not self.is_jumping:
+            self.is_jumping = True
+            self.jump_held = True
+            self.jump_time = 0
+            self.jump_start_y = self.rect.y
+            self.velocity_y = self.jump_power
             self.on_ground = False
             if self.debug:
-                print("[DEBUG] 점프!")
+                print("[DEBUG] 점프 시작!")
+    
+    def stop_jump(self):
+        """점프 중단 (키를 뗄 때)"""
+        self.jump_held = False
     
     def move_left(self) -> None:
         """왼쪽으로 이동"""
@@ -158,25 +198,35 @@ class Player:
     
     def take_damage(self) -> bool:
         """
-        데미지 받기
+        데미지 받기 (체력 없이 바로 죽고 목숨 감소)
         
         Returns:
-            사망 여부 (True면 사망)
+            게임 오버 여부 (목숨이 1일 때 죽으면 True)
         """
         if not self.invincible:
             self.lives -= 1
             if self.debug:
-                print(f"[DEBUG] 데미지! 남은 목숨: {self.lives}")
-            return self.lives <= 0
+                print(f"[DEBUG] 사망! 남은 목숨: {self.lives}")
+            # 목숨이 1일 때 죽으면 게임 오버
+            if self.lives <= 0:
+                return True
+            # 목숨이 남아있으면 부활 (무적 상태 활성화)
+            self.activate_invincibility(self.invincible_duration)
+            # 시작 위치로 리셋 (또는 체크포인트로)
+            return False
         return False
     
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(self, screen: pygame.Surface, camera_x: int = 0) -> None:
         """
         플레이어 그리기
         
         Args:
             screen: 화면 Surface
+            camera_x: 카메라 x 오프셋
         """
+        draw_rect = self.rect.copy()
+        draw_rect.x -= camera_x
+        
         if self.image:
             # 방향에 따라 이미지 뒤집기
             img = self.image
@@ -188,20 +238,20 @@ class Player:
                 img = self.crouch_image
                 if not self.facing_right:
                     img = pygame.transform.flip(img, True, False)
-                screen.blit(img, (self.rect.x, self.rect.y + self.size // 2))
+                screen.blit(img, (draw_rect.x, draw_rect.y + self.size // 2))
             else:
-                screen.blit(img, self.rect)
+                screen.blit(img, draw_rect)
             
             # 무적 상태일 때 깜빡임 효과
             if self.invincible:
                 alpha = 128 + int(127 * (self.invincible_timer / self.invincible_duration))
                 img_copy = img.copy()
                 img_copy.set_alpha(alpha)
-                screen.blit(img_copy, self.rect)
+                screen.blit(img_copy, draw_rect)
         else:
             # 이미지가 없으면 색상으로 표시
             color = (255, 0, 0) if not self.invincible else (255, 255, 0)
             if self.invincible and int(self.invincible_timer / 100) % 2 == 0:
                 color = (255, 255, 255)
-            pygame.draw.rect(screen, color, self.rect)
+            pygame.draw.rect(screen, color, draw_rect)
 

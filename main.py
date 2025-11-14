@@ -85,23 +85,16 @@ def main(debug: bool = False) -> None:
                 config.difficulty = scene_instances["setting"].config["difficulty"]
         
         elif current_scene == "pause":
-            # 일시정지 화면 (간단한 구현)
-            screen.fill((0, 0, 0, 128))
-            font = pygame.font.Font(None, 72)
-            pause_text = font.render("일시정지", True, (255, 255, 255))
-            pause_rect = pause_text.get_rect(center=(config.screen_width // 2, config.screen_height // 2))
-            screen.blit(pause_text, pause_rect)
-            
-            for event in events:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        next_scene = "game"
+            # 일시정지 화면은 game 씬에서 처리
+            # ESC 키로 일시정지 해제는 game 씬에서 처리됨
+            pass
         
         elif current_scene == "explanation":
             # 게임 설명 화면
+            from utils.font_loader import get_korean_font
             screen.fill((50, 50, 50))
-            font_large = pygame.font.Font(None, 72)
-            font_medium = pygame.font.Font(None, 48)
+            font_large = get_korean_font(72)
+            font_medium = get_korean_font(48)
             
             title = font_large.render("게임 설명", True, (255, 255, 255))
             screen.blit(title, (config.screen_width // 2 - 150, 100))

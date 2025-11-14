@@ -1,5 +1,6 @@
 """설정 씬"""
 import pygame
+from utils.font_loader import get_korean_font
 
 
 class SettingScene:
@@ -16,6 +17,8 @@ class SettingScene:
         self.debug = debug
         self.config = config
         self.buttons = {}
+        self.button_images = {}
+        self.background_image = None
         self.setup_buttons()
     
     def setup_buttons(self):
@@ -82,11 +85,15 @@ class SettingScene:
         Args:
             screen: 화면 Surface
         """
-        screen.fill((50, 50, 50))  # 어두운 배경
+        # 배경 이미지
+        if self.background_image:
+            screen.blit(self.background_image, (0, 0))
+        else:
+            screen.fill((50, 50, 50))  # 어두운 배경
         
-        font_large = pygame.font.Font(None, 72)
-        font_medium = pygame.font.Font(None, 48)
-        font_small = pygame.font.Font(None, 36)
+        font_large = get_korean_font(72, self.debug)
+        font_medium = get_korean_font(48, self.debug)
+        font_small = get_korean_font(36, self.debug)
         
         # 제목
         title_text = font_large.render("설정", True, (255, 255, 255))
@@ -98,39 +105,59 @@ class SettingScene:
         volume_rect = volume_text.get_rect(center=(1920 // 2, 250))
         screen.blit(volume_text, volume_rect)
         
-        # 볼륨 버튼
-        pygame.draw.rect(screen, (100, 100, 100), self.buttons["volume_down"])
-        pygame.draw.rect(screen, (100, 100, 100), self.buttons["volume_up"])
-        down_text = font_small.render("-", True, (255, 255, 255))
-        up_text = font_small.render("+", True, (255, 255, 255))
-        screen.blit(down_text, down_text.get_rect(center=self.buttons["volume_down"].center))
-        screen.blit(up_text, up_text.get_rect(center=self.buttons["volume_up"].center))
+        # 볼륨 버튼 (이미지 기반)
+        if "volume_down" in self.button_images:
+            screen.blit(self.button_images["volume_down"], self.buttons["volume_down"])
+        else:
+            pygame.draw.rect(screen, (100, 100, 100), self.buttons["volume_down"])
+            down_text = font_small.render("-", True, (255, 255, 255))
+            screen.blit(down_text, down_text.get_rect(center=self.buttons["volume_down"].center))
+        
+        if "volume_up" in self.button_images:
+            screen.blit(self.button_images["volume_up"], self.buttons["volume_up"])
+        else:
+            pygame.draw.rect(screen, (100, 100, 100), self.buttons["volume_up"])
+            up_text = font_small.render("+", True, (255, 255, 255))
+            screen.blit(up_text, up_text.get_rect(center=self.buttons["volume_up"].center))
         
         # 난이도 설정
         difficulty_text = font_medium.render(f"난이도: {self.config['difficulty']}", True, (255, 255, 255))
         difficulty_rect = difficulty_text.get_rect(center=(1920 // 2, 350))
         screen.blit(difficulty_text, difficulty_rect)
         
-        # 난이도 버튼
+        # 난이도 버튼 (이미지 기반)
         difficulties = ["easy", "normal", "hard"]
         difficulty_labels = ["쉬움", "보통", "어려움"]
         for i, (diff, label) in enumerate(zip(difficulties, difficulty_labels)):
             key = f"difficulty_{diff}"
             if key in self.buttons:
-                color = (150, 150, 150) if self.config["difficulty"] == diff else (100, 100, 100)
-                pygame.draw.rect(screen, color, self.buttons[key])
-                btn_text = font_small.render(label, True, (255, 255, 255))
-                screen.blit(btn_text, btn_text.get_rect(center=self.buttons[key].center))
+                if key in self.button_images:
+                    btn_img = self.button_images[key]
+                    if self.config["difficulty"] == diff and f"{key}_selected" in self.button_images:
+                        btn_img = self.button_images[f"{key}_selected"]
+                    btn_img = pygame.transform.scale(btn_img, (self.buttons[key].width, self.buttons[key].height))
+                    screen.blit(btn_img, self.buttons[key])
+                else:
+                    color = (150, 150, 150) if self.config["difficulty"] == diff else (100, 100, 100)
+                    pygame.draw.rect(screen, color, self.buttons[key])
+                    btn_text = font_small.render(label, True, (255, 255, 255))
+                    screen.blit(btn_text, btn_text.get_rect(center=self.buttons[key].center))
         
-        # 뒤로가기 버튼
+        # 뒤로가기 버튼 (이미지 기반)
         mouse_pos = pygame.mouse.get_pos()
-        if self.buttons["back"].collidepoint(mouse_pos):
-            color = (100, 150, 255)
+        if "back" in self.button_images:
+            back_img = self.button_images["back"]
+            if self.buttons["back"].collidepoint(mouse_pos) and "back_hover" in self.button_images:
+                back_img = self.button_images["back_hover"]
+            back_img = pygame.transform.scale(back_img, (self.buttons["back"].width, self.buttons["back"].height))
+            screen.blit(back_img, self.buttons["back"])
         else:
-            color = (70, 130, 180)
-        
-        pygame.draw.rect(screen, color, self.buttons["back"])
-        pygame.draw.rect(screen, (255, 255, 255), self.buttons["back"], 3)
+            if self.buttons["back"].collidepoint(mouse_pos):
+                color = (100, 150, 255)
+            else:
+                color = (70, 130, 180)
+            pygame.draw.rect(screen, color, self.buttons["back"])
+            pygame.draw.rect(screen, (255, 255, 255), self.buttons["back"], 3)
         
         back_text = font_medium.render("뒤로가기", True, (255, 255, 255))
         back_rect = back_text.get_rect(center=self.buttons["back"].center)

@@ -6,6 +6,7 @@ from entities.enemy import spawn_enemies, update_enemies, draw_enemies
 from entities.item import spawn_items, update_items, draw_items
 from entities.block import load_blocks, get_block_types, draw_blocks
 from utils.json_loader import load_json
+from utils.font_loader import get_korean_font
 
 
 class GameScene:
@@ -41,6 +42,9 @@ class GameScene:
         # 이미지 딕셔너리
         self.images = {}
         self.background_image = None
+        
+        # UI 이미지
+        self.ui_images = {}
         
         self.load_map()
         self.setup_game()
@@ -129,22 +133,36 @@ class GameScene:
                 break
         
         self.player = Player(start_x, start_y, 160, self.debug)
+        self.start_x = start_x
+        self.start_y = start_y
         
         # 시작 시간 기록
         self.start_time = time.time()
     
-    def load_images(self, images: dict):
+    def reset_player_position(self):
+        """플레이어를 시작 위치로 리셋"""
+        self.player.rect.x = self.start_x
+        self.player.rect.y = self.start_y
+        self.player.velocity_x = 0
+        self.player.velocity_y = 0
+        self.player.is_jumping = False
+        self.player.jump_time = 0
+    
+    def load_images(self, images: dict, ui_images: dict = None):
         """
         이미지 로드
         
         Args:
-            images: 이미지 딕셔너리
+            images: 게임 이미지 딕셔너리
+            ui_images: UI 이미지 딕셔너리
         """
         self.images = images
         if "player" in images and self.player:
             self.player.load_images(images["player"], images.get("player_crouch"))
         if "background" in images:
             self.background_image = images["background"]
+        if ui_images:
+            self.ui_images = ui_images
     
     def update(self, events: list, dt: float) -> str:
         """
@@ -174,18 +192,25 @@ class GameScene:
             else:
                 self.player.stand_up()
             
+            # 점프 처리 (마리오 스타일 - 키를 누르고 있는 동안 계속 올라가기)
+            jump_keys_pressed = keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]
+            
             for event in events:
                 if event.type == pygame.QUIT:
                     return "menu"
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
-                        self.player.jump()
+                        if self.player.on_ground and not self.player.is_jumping:
+                            self.player.jump()
                     if event.key == pygame.K_ESCAPE:
                         self.paused = True
                         return "pause"
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
+                        self.player.stop_jump()
             
-            # 플레이어 업데이트
-            self.player.update(dt, self.blocks, self.debug)
+            # 플레이어 업데이트 (점프 키 상태 전달)
+            self.player.update(dt, self.blocks, jump_keys_pressed, self.debug)
             
             # 적 업데이트
             update_enemies(self.enemies, dt, self.blocks, self.debug)
@@ -224,11 +249,18 @@ class GameScene:
                             print(f"[DEBUG] 적 제거: {enemy['name']}")
                     self.player.velocity_y = -5  # 튀어오르기
                 else:
-                    # 적에게 맞음
-                    if self.player.take_damage():
-                        self.game_over = True
-                        if self.debug:
-                            print("[DEBUG] 게임 오버!")
+                    # 적에게 맞음 (체력 없이 바로 죽고 목숨 감소)
+                    if not self.player.invincible:
+                        if self.player.take_damage():
+                            # 목숨이 1일 때 죽으면 게임 오버
+                            self.game_over = True
+                            if self.debug:
+                                print("[DEBUG] 게임 오버!")
+                        else:
+                            # 목숨이 남아있으면 시작 위치로 리셋
+                            self.reset_player_position()
+                            if self.debug:
+                                print(f"[DEBUG] 부활! 남은 목숨: {self.player.lives}")
         
         # 아이템과의 충돌
         for item in self.items:
@@ -285,7 +317,7 @@ class GameScene:
                     screen.blit(self.images["application_form"], form_rect)
                 else:
                     pygame.draw.rect(screen, (255, 255, 0), form_rect)
-                    font = pygame.font.Font(None, 36)
+                    font = get_korean_font(36, self.debug)
                     text = font.render("수시 원서", True, (0, 0, 0))
                     text_rect = text.get_rect(center=form_rect.center)
                     screen.blit(text, text_rect)
@@ -311,7 +343,7 @@ class GameScene:
                     else:
                         color = (100, 100, 100)
                     pygame.draw.rect(screen, color, enemy_screen_rect)
-                    font = pygame.font.Font(None, 24)
+                    font = get_korean_font(24, self.debug)
                     text = font.render(enemy["name"], True, (255, 255, 255))
                     screen.blit(text, (enemy_screen_rect.x, enemy_screen_rect.y - 20))
         
@@ -334,35 +366,53 @@ class GameScene:
                     pygame.draw.circle(screen, (255, 255, 255), item_screen_rect.center, item_screen_rect.width // 4)
         
         # 플레이어 그리기 (카메라 오프셋 적용)
-        # 플레이어를 임시 Surface에 그리고 카메라 오프셋을 적용하여 화면에 표시
-        temp_surface = pygame.Surface((1920, 1080), pygame.SRCALPHA)
-        self.player.draw(temp_surface)
-        # 카메라 오프셋 적용
-        screen.blit(temp_surface, (-self.camera_x, 0))
+        player_screen_rect = self.player.rect.copy()
+        player_screen_rect.x -= self.camera_x
+        if player_screen_rect.colliderect(pygame.Rect(0, 0, 1920, 1080)):
+            self.player.draw(screen, self.camera_x)
         
         # UI 그리기
         self.render_ui(screen)
     
     def render_ui(self, screen: pygame.Surface):
         """UI 렌더링"""
-        font = pygame.font.Font(None, 48)
+        font = get_korean_font(48, self.debug)
         
-        # 목숨 표시
-        lives_text = font.render(f"목숨: {self.player.lives}", True, (255, 255, 255))
-        screen.blit(lives_text, (20, 20))
+        # 목숨 표시 (이미지 기반)
+        if "lives_icon" in self.ui_images:
+            for i in range(self.player.lives):
+                icon = self.ui_images["lives_icon"]
+                screen.blit(icon, (20 + i * (icon.get_width() + 10), 20))
+        else:
+            # 이미지가 없으면 텍스트로 표시
+            lives_text = font.render(f"목숨: {self.player.lives}", True, (255, 255, 255))
+            screen.blit(lives_text, (20, 20))
         
-        # 시간 표시
-        minutes = int(self.elapsed_time // 60)
-        seconds = int(self.elapsed_time % 60)
-        time_text = font.render(f"시간: {minutes:02d}:{seconds:02d}", True, (255, 255, 255))
-        screen.blit(time_text, (20, 70))
+        # 시간 표시 (이미지 기반)
+        if "time_icon" in self.ui_images:
+            screen.blit(self.ui_images["time_icon"], (20, 70))
+            minutes = int(self.elapsed_time // 60)
+            seconds = int(self.elapsed_time % 60)
+            time_text = font.render(f"{minutes:02d}:{seconds:02d}", True, (255, 255, 255))
+            screen.blit(time_text, (20 + self.ui_images["time_icon"].get_width() + 10, 70))
+        else:
+            # 이미지가 없으면 텍스트로 표시
+            minutes = int(self.elapsed_time // 60)
+            seconds = int(self.elapsed_time % 60)
+            time_text = font.render(f"시간: {minutes:02d}:{seconds:02d}", True, (255, 255, 255))
+            screen.blit(time_text, (20, 70))
         
         # 일시정지 표시
         if self.paused:
-            pause_font = pygame.font.Font(None, 72)
-            pause_text = pause_font.render("일시정지", True, (255, 255, 255))
-            pause_rect = pause_text.get_rect(center=(1920 // 2, 1080 // 2))
-            screen.blit(pause_text, pause_rect)
+            if "pause_bg" in self.ui_images:
+                pause_bg = self.ui_images["pause_bg"]
+                pause_rect = pause_bg.get_rect(center=(1920 // 2, 1080 // 2))
+                screen.blit(pause_bg, pause_rect)
+            else:
+                pause_font = get_korean_font(72, self.debug)
+                pause_text = pause_font.render("일시정지", True, (255, 255, 255))
+                pause_rect = pause_text.get_rect(center=(1920 // 2, 1080 // 2))
+                screen.blit(pause_text, pause_rect)
     
     def get_result(self) -> dict:
         """
