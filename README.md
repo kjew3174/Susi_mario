@@ -3,9 +3,68 @@
 수시마리오
 
 목표: 수시 원서에 도달 -> 교사 박 모씨 제거
+
 과정: 마리오 형식으로
+
 결과: 시간 기록 기반 등급(백분율), 대응되는 대학 + 메시지 or 한강 철교 이미지
 
+이미지:
+	캐릭터 높이 160: 블록 1개
+	
+	점프 높이 블록 0~5칸
+	
+	너비 블록 1개	
+	
+	메뉴 화면
+	
+		menu_background.png - 메인 메뉴 배경 (1920x1080)
+		
+		title.png - 게임 타이틀 이미지 (선택사항)
+	
+	게임 플레이
+	
+		player.png - 플레이어 기본 이미지 (160x160)
+		
+		player_crouch.png - 플레이어 웅크리기 이미지 (160x80, 선택사항)
+		
+		background.png - 게임 배경 (천고 배경, 가로로 긴 타일 가능)
+		
+		application_form.png - 수시 원서 이미지 (160x160)
+	
+	블록
+	
+		block_normal.png - 일반 블록 (160x160)
+		
+		block_item.png - 아이템 블록 (160x160)
+		
+		block_pipe.png - 토관/논술 (160x320, 세로로 긴 형태)
+	
+	적 (Enemies)
+	
+		enemy_strong.png - 강한 적 (박건률) (160x160)
+		
+		enemy_weak.png - 약한 적 (오유준) (160x160)
+		
+		enemy_boss.png - 보스 (청마) (320x320, 2배 크기)
+	
+	아이템
+	
+		item_coffee.png - 커피 아이템 (무적) (160x160)
+		
+		item_general.png - 일반 아이템 (160x160)
+	
+	결과 화면
+	
+		bridge.png - 한강 철교 이미지 (선택사항, 등급 50% 미만 시 표시)
+	
+	UI 요소 (선택사항)
+	
+		button.png - 버튼 이미지
+		
+		button_hover.png - 버튼 호버 이미지
+		
+		pause_menu.png - 일시정지 메뉴 배경
+	
 시스템: 맵 불러오기(Json), 에디터
 	메뉴 화면: 시작하기
 			게임 제목
@@ -45,102 +104,307 @@
 => 디버깅 메시지 출력 여부
 모든 함수에 추가
 
-Susi_Mario/
- ├─ main.py
- │    ├─ main() -> None
- │    │     ├─ 초기화 및 첫 씬(menu) 실행
- │    │     └─ 씬 전환 제어 (menu → game → result)
- │
- ├─ game.py
- │    ├─ run_game(map_path: str) -> dict
- │    │     ├─ 맵 로드(load_map)
- │    │     ├─ 루프: handle_events → update → render
- │    │     ├─ 종료 조건: 클리어 or 사망
- │    │     └─ return {"status": "clear"/"dead", "time": float}
- │    │
- │    ├─ load_map(map_path: str) -> dict
- │    │     └─ JSON 파일에서 블럭, 몹, 아이템 정보 불러오기
- │    │
- │    ├─ handle_events(keys: dict) -> None
- │    │     └─ 이동, 점프, 웅크리기 등 입력 처리
- │    │
- │    ├─ update(dt: float, player: dict, enemies: list, items: list) -> None
- │    │     ├─ 중력 적용
- │    │     ├─ 충돌 판정 (player vs block / enemy / item)
- │    │     └─ 효과 적용 (아이템, 피격 등)
- │    │
- │    ├─ render(screen: pygame.Surface, data: dict) -> None
- │    │     └─ 배경, 플레이어, 몹, UI(시간·목숨) 렌더링
- │    │
- │    ├─ reset_player() -> dict
- │    │     └─ 플레이어 초기 좌표, 상태(dict) 반환
- │    │
- │    ├─ reset_boss() -> dict
- │    │     └─ 보스 초기 좌표, 체력 상태(dict) 반환
- │
- ├─ editor.py
- │    ├─ run_editor() -> None
- │    │     └─ 맵 수정 루프 (오브젝트 추가·삭제)
- │    │
- │    ├─ load_map(path: str) -> dict
- │    ├─ save_map(path: str, data: dict) -> None
- │    ├─ add_object(obj_type: str, x: int, y: int) -> None
- │    ├─ remove_object(x: int, y: int) -> None
- │
- ├─ scenes/
- │    ├─ menu.py
- │    │     ├─ run_menu(screen: pygame.Surface) -> str
- │    │     │     ├─ 시작 / 설정 / 종료 중 선택
- │    │     │     └─ return "start" / "setting" / "quit"
- │    │
- │    ├─ result.py
- │    │     ├─ run_result(screen: pygame.Surface, result: dict) -> str
- │    │     │     ├─ 결과 표시, 기록 저장(save_record)
- │    │     │     └─ return "retry" / "menu"
- │    │
- │    ├─ setting.py
- │          ├─ run_setting(screen: pygame.Surface) -> None
- │          │     ├─ 볼륨, 키 변경 등 설정 UI
- │          │     └─ 저장(save_settings)
- │          ├─ load_settings() -> dict
- │          ├─ save_settings(settings: dict) -> None
- │
- ├─ entities/
- │    ├─ enemy.py
- │    │     ├─ create_enemy(x: int, y: int, speed: float) -> dict
- │    │     │     └─ {"x": int, "y": int, "speed": float, "dir": 1}
- │    │
- │    │     ├─ move_enemy(enemy: dict, dt: float, blocks: list) -> None
- │    │     └─ check_collision(enemy: dict, player_rect: pygame.Rect) -> bool
- │    │
- │    ├─ item.py
- │    │     ├─ create_item(x: int, y: int, item_type: str) -> dict
- │    │     │     └─ {"x": int, "y": int, "type": "coffee"/"extra_life"}
- │    │
- │    │     └─ apply_item_effect(player: dict, item_type: str) -> None
- │    │          └─ 무적/체력 증가 등 처리
- │    │
- │    ├─ block.py
- │          ├─ create_block(x: int, y: int, block_type: str) -> dict
- │          │     └─ {"x": int, "y": int, "type": "ground"/"item"}
- │          └─ hit_block(block: dict, player: dict, items: list) -> None
- │
- ├─ assets/
- │    ├─ images/    ← 스프라이트 이미지
- │    └─ sounds/    ← 효과음, 배경음악
- │
- ├─ data/
- │    ├─ maps/
- │    │     └─ stage1.json
- │    └─ record.json
- │          ├─ save_record(result: dict) -> None
- │          └─ load_records() -> list[dict]
- │
- └─ utils/
-      ├─ json_loader.py
-      │     ├─ load_json(path: str) -> dict
-      │     └─ save_json(path: str, data: dict) -> None
-      │
-      └─ config.py
-            ├─ SETTINGS = {...}
-            └─ (화면 크기, FPS, 중력, 기본 속도 등 상수)
+# 🎮 Susi_Mario 프로젝트 구조 및 설계
+
+## main.py  
+- **설명**: 게임의 진입점으로, 초기 설정 및 씬 전환 관리.  
+- **함수**
+  - `main() -> None`  
+    - 게임 전체를 실행하는 메인 루프.  
+    - 초기화 후 `MenuScene`으로 진입.
+
+---
+
+## game.py  
+- **설명**: 실제 게임 진행을 담당. (맵 로딩, 충돌 처리, 점수 관리 등)
+- **함수**
+  - `run_game() -> int`  
+    - 스테이지를 실행하고 클리어 또는 사망 시 점수를 반환.
+  - `handle_collision(player_rect: pygame.Rect, blocks: list, items: list, enemies: list) -> dict`  
+    - 충돌 여부를 판별하고 결과(`{"hit_enemy": bool, "got_item": bool}`)를 반환.
+  - `reset_game() -> None`  
+    - 모든 게임 오브젝트를 초기 상태로 복구.
+
+---
+
+## editor.py  
+- **설명**: 간단한 맵 에디터 기능 (테스트용)
+- **함수**
+  - `open_editor() -> None`  
+    - 맵 편집 인터페이스를 실행.
+  - `save_map(map_data: list[list[int]]) -> None`  
+    - 편집된 맵 데이터를 JSON 파일로 저장.
+
+---
+
+## scenes/
+
+### menu.py  
+- **클래스**: `MenuScene`
+  - **메서드**
+    - `__init__(self) -> None`
+    - `update(self, events: list) -> str`  
+      - 버튼 클릭 등 이벤트를 감지하고 다음 씬 이름(`"game"`, `"setting"`, `"exit"`) 반환.
+    - `render(self, screen: pygame.Surface) -> None`
+
+---
+
+### result.py  
+- **클래스**: `ResultScene`
+  - **메서드**
+    - `__init__(self, score: int) -> None`
+    - `update(self, events: list) -> str`  
+      - 다시하기 / 메뉴로 돌아가기 버튼 처리.
+    - `render(self, screen: pygame.Surface) -> None`
+
+---
+
+### setting.py  
+- **클래스**: `SettingScene`
+  - **메서드**
+    - `__init__(self, config: dict) -> None`
+    - `update(self, events: list) -> str`  
+      - 사운드 on/off, 난이도 변경 등.
+    - `render(self, screen: pygame.Surface) -> None`
+
+---
+
+## entities/
+
+### enemy.py  
+- **함수**
+  - `spawn_enemies(map_data: list[list[int]]) -> list[dict]`  
+    - 맵 정보에 따라 적의 위치를 생성해 리스트 반환.  
+  - `update_enemies(enemies: list[dict], dt: float) -> None`  
+    - 각 적의 위치 및 상태 업데이트.  
+  - `draw_enemies(screen: pygame.Surface, enemies: list[dict]) -> None`
+
+---
+
+### item.py  
+- **함수**
+  - `spawn_items(map_data: list[list[int]]) -> list[dict]`
+  - `update_items(items: list[dict], dt: float) -> None`
+  - `draw_items(screen: pygame.Surface, items: list[dict]) -> None`
+
+---
+
+### block.py  
+- **함수**
+  - `load_blocks(map_data: list[list[int]]) -> list[pygame.Rect]`  
+    - 맵 데이터를 읽어 충돌용 블록 좌표 생성.
+  - `draw_blocks(screen: pygame.Surface, blocks: list[pygame.Rect]) -> None`
+
+---
+
+## assets/
+
+### images/
+- 배경, 블록, 적, 아이템 등의 이미지 파일 (.png)
+
+### sounds/
+- 효과음, 배경음악 파일 (.wav, .mp3)
+
+---
+
+## data/
+
+### maps/
+- 스테이지 맵 데이터 (.json 또는 .txt)
+
+### record.json  
+- 최고 점수, 설정값 저장 파일
+
+---
+
+## utils/
+
+### json_loader.py  
+- **함수**
+  - `load_json(path: str) -> dict | list`  
+    - JSON 파일 읽기  
+  - `save_json(path: str, data: dict | list) -> None`
+
+### config.py  
+- **클래스**: `Config`
+  - **속성**: `screen_width`, `screen_height`, `volume`, `difficulty`
+  - **메서드**
+    - `load(self, path: str) -> None`
+    - `save(self, path: str) -> None`
+
+---
+
+## 요약
+- **씬 구조**: `Menu → Game → Result`  
+- **엔티티 구조**: 적, 아이템, 블록은 함수 기반으로 관리  
+- **데이터 관리**: JSON 기반 (맵, 설정, 기록)  
+- **확장성**: 스테이지 1개 기준으로 최소 구조 유지
+
+
+
+# 필요한 이미지 파일 목록
+
+## 현재 가지고 있는 이미지 (18개)
+### 메뉴 화면
+
+	menu_background.png - 메인 메뉴 배경 (1920x1080)
+	
+	title.png - 게임 타이틀 이미지 (선택사항)
+
+### 게임 플레이
+
+	player.png - 플레이어 기본 이미지 (160x160)
+	
+	✅ background.png - 게임 배경 (천고 배경, 가로로 긴 타일 가능)
+	
+	application_form.png - 수시 원서 이미지 (160x160)
+
+### 블록
+
+	block_normal.png - 일반 블록 (160x160)
+	
+	block_item.png - 아이템 블록 (160x160)
+	
+	block_pipe.png - 토관/논술 (160x320, 세로로 긴 형태)
+
+### 적 (Enemies)
+
+	enemy_strong.png - 강한 적 (박건률) (160x160)
+	
+	enemy_weak.png - 약한 적 (오유준) (160x160)
+	
+	enemy_boss.png - 보스 (청마) (320x320, 2배 크기)
+
+### 아이템
+
+	item_coffee.png - 커피 아이템 (무적) (160x160)
+	
+	item_general.png - 일반 아이템 (160x160)
+
+### 결과 화면
+
+	bridge.png - 한강 철교 이미지 (선택사항, 등급 50% 미만 시 표시)
+    univ_logo0.png - 대학 로고 이미지
+
+### UI 요소 (선택사항)
+
+	button.png - 버튼 이미지
+	
+	button_hover.png - 버튼 호버 이미지
+	
+	pause_menu.png - 일시정지 메뉴 배경
+
+## 추가로 필요한 이미지 파일
+
+## 모든 이미지는 사각형 기반 또는 픽셀아트, 버튼 호버 이미지는 내부 색을 조금 어둡게 변경
+
+### 버튼 이미지 (4개) - 모든 버튼에 재활용
+1. **button_rect.png** - 직사각형 버튼 (400x80px)
+   - 용도: 메뉴, 결과 화면의 모든 버튼에 사용
+
+2. **button_rect_hover.png** - 직사각형 버튼 호버 (400x80px)
+   - 용도: 마우스 오버 시 표시
+
+3. **button_square.png** - 정사각형 버튼 (80x80px)
+   - 용도: 일시정지, 스테이지 선택, 설정 화면의 작은 버튼들에 사용
+   - 볼륨 버튼, 난이도 버튼 등에 크기 조정하여 재활용
+
+4. **button_square_hover.png** - 정사각형 버튼 호버 (80x80px)
+   - 용도: 마우스 오버 시 표시, 선택된 난이도 버튼에도 사용
+
+### 게임 플레이 UI (2개)
+5. **lives_icon.png** - 목숨 아이콘 (하트 모양)
+   - 크기: 40x40px (또는 적절한 크기)
+   - 용도: 목숨 표시용 아이콘
+
+6. **time_icon.png** - 시간 아이콘 (시계 모양)
+   - 크기: 40x40px (또는 적절한 크기)
+   - 용도: 시간 표시용 아이콘
+
+7. **pause_bg.png** - 일시정지 배경
+   - 크기: 400x300px (또는 적절한 크기)
+   - 용도: 일시정지 메뉴 배경
+   - 참고: pause_menu.png가 있으면 재활용 가능
+
+### 결과 화면 배경 (2개)
+8. **result_background_victory.png** - 클리어 배경
+   - 크기: 1920x1080px
+   - 용도: 클리어 시 배경
+
+9. **result_background_gameover.png** - 게임 오버 배경
+   - 크기: 1920x1080px
+   - 용도: 게임 오버 시 배경
+
+### 설정 화면 배경 (1개)
+10. **setting_background.png** - 설정 화면 배경
+    - 크기: 1920x1080px
+
+## 이미지 로드 방법
+
+이미지 파일들을 `assets/images/` 폴더에 저장하고, 각 씬에서 다음과 같이 로드하세요:
+
+```python
+# 예시 (main.py에 추가)
+def load_all_images():
+    # 게임 플레이 이미지
+    images = {
+        "player": "assets/images/player.png",
+        "player_crouch": "assets/images/player_crouch.png",
+        "background": "assets/images/background.png",
+        "application_form": "assets/images/application_form.png",
+        "blocks": {
+            "normal": "assets/images/block_normal.png",
+            "item": "assets/images/block_item.png",
+            "pipe": "assets/images/block_pipe.png"
+        },
+        "enemies": {
+            "strong": "assets/images/enemy_strong.png",
+            "weak": "assets/images/enemy_weak.png",
+            "boss": "assets/images/enemy_boss.png"
+        },
+        "items": {
+            "coffee": "assets/images/item_coffee.png",
+            "item": "assets/images/item_general.png"
+        }
+    }
+    
+    # UI 이미지
+    ui_images = {
+        "lives_icon": "assets/images/lives_icon.png",
+        "time_icon": "assets/images/time_icon.png",
+        "pause_bg": "assets/images/pause_bg.png",  # 또는 pause_menu.png
+    }
+    
+    # 버튼 이미지 (공통)
+    button_images = {
+        "rect": "assets/images/button_rect.png",
+        "rect_hover": "assets/images/button_rect_hover.png",
+        "square": "assets/images/button_square.png",
+        "square_hover": "assets/images/button_square_hover.png"
+    }
+    
+    return images, ui_images, button_images
+```
+
+## 버튼 사용 규칙
+
+### 400x80px 버튼 (button_rect) 사용 위치:
+- 메뉴 화면: 시작하기, 설정, 게임 설명, 종료
+- 결과 화면: 다시하기, 메뉴로
+- 설정 화면: 뒤로가기
+
+### 80x80px 버튼 (button_square) 사용 위치:
+- 설정 화면: 볼륨 증가/감소 (100x50으로 크기 조정)
+- 설정 화면: 난이도 선택 버튼 (200x50으로 크기 조정, 선택 시 hover 이미지 사용)
+- 일시정지 메뉴 버튼 (향후 추가 시)
+- 스테이지 선택 버튼 (향후 추가 시)
+
+## 요약
+- **총 추가 필요 이미지**: 약 10개
+  - 버튼: 4개 (모든 버튼에 재활용)
+  - UI 아이콘: 2개
+  - 일시정지 배경: 1개
+  - 결과 화면 배경: 2개
+  - 설정 화면 배경: 1개
+- **기존 이미지**: 18개 (게임 플레이용 이미지)
+- **모든 이미지는 PNG 형식 권장** (투명도 지원)
