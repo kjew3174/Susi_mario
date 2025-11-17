@@ -1,6 +1,7 @@
 """게임 씬"""
 import pygame
 import time
+import os
 from entities.player import Player
 from entities.enemy import spawn_enemies, update_enemies, draw_enemies
 from entities.item import spawn_items, update_items, draw_items
@@ -36,8 +37,24 @@ class GameScene:
         self.victory = False
         self.application_form_rect = None  # 수시 원서 위치
         
-        # 카메라 오프셋
+        # 게임 상태
+        self.countdown_active = True  # 카운트다운 활성화
+        self.countdown_time = 3.0  # 3초 카운트다운
+        self.game_started = False  # 게임 시작 여부
+        
+        # 사망 연출
+        self.death_animation = False
+        self.death_timer = 0
+        self.death_duration = 1.0  # 1초 정지
+        
+        # 보스전
+        self.boss_battle = False
+        self.boss_switch_rect = None  # 보스 스위치 위치
+        self.camera_locked = False  # 카메라 고정 여부
+        
+        # 카메라 오프셋 (플레이어를 화면 중앙에 고정)
         self.camera_x = 0
+        self.player_screen_x = 1920 // 2  # 플레이어가 화면상 고정될 x좌표
         
         # 이미지 딕셔너리
         self.images = {}
@@ -45,6 +62,10 @@ class GameScene:
         
         # UI 이미지
         self.ui_images = {}
+        
+        # 일시정지 버튼 이미지
+        self.button_rect = None
+        self.button_rect_hover = None
         
         self.load_map()
         self.setup_game()
@@ -60,6 +81,19 @@ class GameScene:
                 160,
                 160
             )
+            # 보스전 정보
+            if "boss_battle" in data:
+                boss_info = data["boss_battle"]
+                self.boss_battle = boss_info.get("enabled", False)
+                if "switch" in boss_info:
+                    switch_info = boss_info["switch"]
+                    self.boss_switch_rect = pygame.Rect(
+                        switch_info.get("x", 0) * 160,
+                        switch_info.get("y", 0) * 160,
+                        160,
+                        160
+                    )
+                    self.camera_locked = True
         else:
             # 기본 맵 생성
             self.map_data = self.create_default_map()
@@ -148,13 +182,15 @@ class GameScene:
         self.player.is_jumping = False
         self.player.jump_time = 0
     
-    def load_images(self, images: dict, ui_images: dict = None):
+    def load_images(self, images: dict, ui_images: dict = None, button_rect: str = None, button_rect_hover: str = None):
         """
         이미지 로드
         
         Args:
             images: 게임 이미지 딕셔너리
             ui_images: UI 이미지 딕셔너리
+            button_rect: 400x80px 버튼 이미지 경로
+            button_rect_hover: 400x80px 버튼 호버 이미지 경로
         """
         self.images = images
         if "player" in images and self.player:
@@ -163,6 +199,10 @@ class GameScene:
             self.background_image = images["background"]
         if ui_images:
             self.ui_images = ui_images
+        if button_rect:
+            self.button_rect = pygame.image.load(button_rect).convert_alpha()
+        if button_rect_hover:
+            self.button_rect_hover = pygame.image.load(button_rect_hover).convert_alpha()
     
     def update(self, events: list, dt: float) -> str:
         """
@@ -203,14 +243,26 @@ class GameScene:
                         if self.player.on_ground and not self.player.is_jumping:
                             self.player.jump()
                     if event.key == pygame.K_ESCAPE:
-                        self.paused = True
-                        return "pause"
+                        if not self.paused:
+                            self.paused = True
+                        else:
+                            self.paused = False
+                        return ""
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
                         self.player.stop_jump()
             
             # 플레이어 업데이트 (점프 키 상태 전달)
             self.player.update(dt, self.blocks, jump_keys_pressed, self.debug)
+            
+            # 낭떠러지 추락 감지 (화면 아래로 떨어지면 사망)
+            if self.player.rect.top > 1080 + 200:  # 화면 아래로 많이 떨어지면
+                if not self.death_animation:
+                    self.death_animation = True
+                    self.death_timer = 0
+                    if self.debug:
+                        print("[DEBUG] 낭떠러지 추락!")
+                return ""
             
             # 적 업데이트
             update_enemies(self.enemies, dt, self.blocks, self.debug)
@@ -222,10 +274,13 @@ class GameScene:
             self.check_collisions()
             
             # 시간 업데이트
-            self.elapsed_time = time.time() - self.start_time
+            if self.game_started:
+                self.elapsed_time = time.time() - self.start_time
             
-            # 카메라 업데이트 (플레이어를 따라가기)
-            self.camera_x = self.player.rect.centerx - 1920 // 2
+            # 카메라 업데이트 (플레이어를 화면 중앙에 고정)
+            if not self.camera_locked:
+                self.camera_x = self.player.rect.centerx - self.player_screen_x
+            # 보스전일 때는 카메라 고정
             
             # 수시 원서 도달 확인
             if self.application_form_rect and self.player.rect.colliderect(self.application_form_rect):
@@ -250,17 +305,11 @@ class GameScene:
                     self.player.velocity_y = -5  # 튀어오르기
                 else:
                     # 적에게 맞음 (체력 없이 바로 죽고 목숨 감소)
-                    if not self.player.invincible:
-                        if self.player.take_damage():
-                            # 목숨이 1일 때 죽으면 게임 오버
-                            self.game_over = True
-                            if self.debug:
-                                print("[DEBUG] 게임 오버!")
-                        else:
-                            # 목숨이 남아있으면 시작 위치로 리셋
-                            self.reset_player_position()
-                            if self.debug:
-                                print(f"[DEBUG] 부활! 남은 목숨: {self.player.lives}")
+                    if not self.player.invincible and not self.death_animation:
+                        self.death_animation = True
+                        self.death_timer = 0
+                        if self.debug:
+                            print("[DEBUG] 적에게 맞음! 사망 연출 시작")
         
         # 아이템과의 충돌
         for item in self.items:
@@ -273,6 +322,40 @@ class GameScene:
                 else:
                     if self.debug:
                         print(f"[DEBUG] 아이템 획득: {item['type']}")
+        
+        # 토관 상호작용 (논술) - 아래에서 위로 올라가는 경우
+        for btype, rects in self.block_types.items():
+            if btype == "pipe":
+                for pipe_rect in rects:
+                    if self.player.rect.colliderect(pipe_rect):
+                        # 토관과 상호작용 (아래에서 위로 올라가는 경우)
+                        if self.player.rect.bottom <= pipe_rect.top + 20 and self.player.velocity_y < 0:
+                            # 다른 맵 불러오기 (고난도 지름길)
+                            alt_map = self.map_path.replace("level1", "level1_hard")
+                            if os.path.exists(alt_map):
+                                self.map_path = alt_map
+                                self.load_map()
+                                self.setup_game()
+                                self.countdown_active = True
+                                self.countdown_time = 3.0
+                                self.game_started = False
+                                if self.debug:
+                                    print(f"[DEBUG] 토관을 통해 맵 변경: {alt_map}")
+                            break
+        
+        # 보스전 스위치 상호작용
+        if self.boss_battle and self.boss_switch_rect:
+            if self.player.rect.colliderect(self.boss_switch_rect):
+                # 보스 사망 연출
+                for enemy in self.enemies:
+                    if enemy["type"] == "boss":
+                        enemy["health"] = 0
+                        self.enemies.remove(enemy)
+                        if self.debug:
+                            print("[DEBUG] 보스 사망!")
+                        # 엔딩 연출 후 결과 화면
+                        self.victory = True
+                        break
     
     def render(self, screen: pygame.Surface) -> None:
         """
@@ -373,6 +456,32 @@ class GameScene:
         
         # UI 그리기
         self.render_ui(screen)
+        
+        # 카운트다운 표시
+        if self.countdown_active:
+            countdown_font = get_korean_font(144, self.debug)
+            countdown_num = int(self.countdown_time) + 1
+            if countdown_num > 0:
+                countdown_text = countdown_font.render(str(countdown_num), True, (255, 255, 255))
+                countdown_rect = countdown_text.get_rect(center=(1920 // 2, 1080 // 2))
+                screen.blit(countdown_text, countdown_rect)
+        
+        # 사망 연출 표시
+        if self.death_animation:
+            # 반투명 배경
+            overlay = pygame.Surface((1920, 1080))
+            overlay.set_alpha(180)
+            overlay.fill((255, 0, 0))
+            screen.blit(overlay, (0, 0))
+            
+            death_font = get_korean_font(72, self.debug)
+            death_text = death_font.render("사망!", True, (255, 255, 255))
+            death_rect = death_text.get_rect(center=(1920 // 2, 1080 // 2))
+            screen.blit(death_text, death_rect)
+        
+        # 일시정지 메뉴 렌더링
+        if self.paused:
+            self.render_pause_menu(screen)
     
     def render_ui(self, screen: pygame.Surface):
         """UI 렌더링"""
@@ -402,17 +511,93 @@ class GameScene:
             time_text = font.render(f"시간: {minutes:02d}:{seconds:02d}", True, (255, 255, 255))
             screen.blit(time_text, (20, 70))
         
-        # 일시정지 표시
-        if self.paused:
-            if "pause_bg" in self.ui_images:
-                pause_bg = self.ui_images["pause_bg"]
-                pause_rect = pause_bg.get_rect(center=(1920 // 2, 1080 // 2))
-                screen.blit(pause_bg, pause_rect)
+        # 일시정지 메뉴는 render에서 별도로 처리됨
+    
+    def render_pause_menu(self, screen: pygame.Surface):
+        """일시정지 메뉴 렌더링"""
+        # 반투명 배경
+        overlay = pygame.Surface((1920, 1080))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        screen.blit(overlay, (0, 0))
+        
+        font_large = get_korean_font(72, self.debug)
+        font_medium = get_korean_font(48, self.debug)
+        
+        # 일시정지 제목
+        pause_text = font_large.render("일시정지", True, (255, 255, 255))
+        pause_rect = pause_text.get_rect(center=(1920 // 2, 300))
+        screen.blit(pause_text, pause_rect)
+        
+        # 일시정지 버튼들
+        mouse_pos = pygame.mouse.get_pos()
+        pause_buttons = {
+            "continue": pygame.Rect(1920 // 2 - 200, 400, 400, 80),
+            "restart": pygame.Rect(1920 // 2 - 200, 500, 400, 80),
+            "exit": pygame.Rect(1920 // 2 - 200, 600, 400, 80)
+        }
+        
+        button_labels = {
+            "continue": "계속하기",
+            "restart": "다시하기",
+            "exit": "종료하기"
+        }
+        
+        for key, rect in pause_buttons.items():
+            if self.button_rect:
+                btn_img = self.button_rect
+                if rect.collidepoint(mouse_pos) and self.button_rect_hover:
+                    btn_img = self.button_rect_hover
+                btn_img = pygame.transform.scale(btn_img, (rect.width, rect.height))
+                screen.blit(btn_img, rect)
             else:
-                pause_font = get_korean_font(72, self.debug)
-                pause_text = pause_font.render("일시정지", True, (255, 255, 255))
-                pause_rect = pause_text.get_rect(center=(1920 // 2, 1080 // 2))
-                screen.blit(pause_text, pause_rect)
+                if rect.collidepoint(mouse_pos):
+                    color = (100, 150, 255)
+                else:
+                    color = (70, 130, 180)
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, (255, 255, 255), rect, 3)
+            
+            text = font_medium.render(button_labels[key], True, (255, 255, 255))
+            text_rect = text.get_rect(center=rect.center)
+            screen.blit(text, text_rect)
+    
+    def handle_pause_menu(self, events: list) -> str:
+        """
+        일시정지 메뉴 이벤트 처리
+        
+        Returns:
+            다음 씬 이름 ("", "game", "menu")
+        """
+        mouse_pos = pygame.mouse.get_pos()
+        pause_buttons = {
+            "continue": pygame.Rect(1920 // 2 - 200, 400, 400, 80),
+            "restart": pygame.Rect(1920 // 2 - 200, 500, 400, 80),
+            "exit": pygame.Rect(1920 // 2 - 200, 600, 400, 80)
+        }
+        
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if pause_buttons["continue"].collidepoint(mouse_pos):
+                    self.paused = False
+                    return ""
+                elif pause_buttons["restart"].collidepoint(mouse_pos):
+                    # 게임 재시작
+                    self.load_map()
+                    self.setup_game()
+                    self.countdown_active = True
+                    self.countdown_time = 3.0
+                    self.game_started = False
+                    self.paused = False
+                    return "game"
+                elif pause_buttons["exit"].collidepoint(mouse_pos):
+                    return "menu"
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.paused = False
+                    return ""
+        
+        return ""
     
     def get_result(self) -> dict:
         """

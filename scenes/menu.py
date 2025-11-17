@@ -22,8 +22,9 @@ class MenuScene:
         self.background_image = None
         self.title_image = None
         
-        # 버튼 이미지
-        self.button_images = {}
+        # 버튼 이미지 (공통 버튼 이미지)
+        self.button_rect = None  # 400x80px 버튼
+        self.button_rect_hover = None  # 400x80px 버튼 호버
         
         # 버튼 위치 설정
         self.setup_buttons()
@@ -40,14 +41,15 @@ class MenuScene:
             "exit": pygame.Rect(screen_width // 2 - 200, screen_height // 2 + 300, 400, 80)
         }
     
-    def load_images(self, background_path: str = None, title_path: str = None, button_images: dict = None):
+    def load_images(self, background_path: str = None, title_path: str = None, button_rect: str = None, button_rect_hover: str = None):
         """
         이미지 로드
         
         Args:
             background_path: 배경 이미지 경로
             title_path: 타이틀 이미지 경로
-            button_images: 버튼 이미지 딕셔너리 {"start": path, "setting": path, ...}
+            button_rect: 400x80px 버튼 이미지 경로
+            button_rect_hover: 400x80px 버튼 호버 이미지 경로
         """
         try:
             if background_path:
@@ -55,16 +57,13 @@ class MenuScene:
                 self.background_image = pygame.transform.scale(self.background_image, (1920, 1080))
             if title_path:
                 self.title_image = pygame.image.load(title_path).convert_alpha()
-            if button_images:
-                for key, path in button_images.items():
-                    try:
-                        self.button_images[key] = pygame.image.load(path).convert_alpha()
-                    except:
-                        if self.debug:
-                            print(f"[DEBUG] 버튼 이미지 로드 실패: {key}")
-        except:
+            if button_rect:
+                self.button_rect = pygame.image.load(button_rect).convert_alpha()
+            if button_rect_hover:
+                self.button_rect_hover = pygame.image.load(button_rect_hover).convert_alpha()
+        except Exception as e:
             if self.debug:
-                print("[DEBUG] 메뉴 이미지 로드 실패")
+                print(f"[DEBUG] 메뉴 이미지 로드 실패: {e}")
     
     def update(self, events: list) -> str:
         """
@@ -86,7 +85,7 @@ class MenuScene:
                 if self.buttons["start"].collidepoint(mouse_pos):
                     if self.debug:
                         print("[DEBUG] 시작 버튼 클릭")
-                    return "game"
+                    return "stage_select"
                 elif self.buttons["setting"].collidepoint(mouse_pos):
                     if self.debug:
                         print("[DEBUG] 설정 버튼 클릭")
@@ -140,13 +139,11 @@ class MenuScene:
         }
         
         for key, rect in self.buttons.items():
-            # 버튼 이미지 사용
-            if key in self.button_images:
-                button_img = self.button_images[key]
-                # 호버 효과 (이미지가 있으면 호버 이미지도 사용 가능)
-                if rect.collidepoint(mouse_pos) and f"{key}_hover" in self.button_images:
-                    button_img = self.button_images[f"{key}_hover"]
-                # 버튼 크기에 맞게 조정
+            # 400x80px 버튼 이미지 사용
+            if self.button_rect:
+                button_img = self.button_rect
+                if rect.collidepoint(mouse_pos) and self.button_rect_hover:
+                    button_img = self.button_rect_hover
                 button_img = pygame.transform.scale(button_img, (rect.width, rect.height))
                 screen.blit(button_img, rect)
             else:

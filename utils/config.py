@@ -20,6 +20,7 @@ class Config:
         self.difficulty = "normal"  # "easy", "normal", "hard"
         self.block_size = 160
         self.player_size = 160
+        self.fullscreen = False  # 전체화면 여부
         
     def load(self, path: str = "data/config.json") -> None:
         """
@@ -36,6 +37,7 @@ class Config:
             self.difficulty = data.get("difficulty", self.difficulty)
             self.block_size = data.get("block_size", self.block_size)
             self.player_size = data.get("player_size", self.player_size)
+            self.fullscreen = data.get("fullscreen", self.fullscreen)
             if self.debug:
                 print(f"[DEBUG] 설정 로드 완료: {path}")
     
@@ -52,7 +54,8 @@ class Config:
             "volume": self.volume,
             "difficulty": self.difficulty,
             "block_size": self.block_size,
-            "player_size": self.player_size
+            "player_size": self.player_size,
+            "fullscreen": self.fullscreen
         }
         save_json(path, data, self.debug)
         if self.debug:
